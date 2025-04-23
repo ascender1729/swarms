@@ -44,22 +44,13 @@ def main():
         agent.tool_schemas = schemas  # Inject pre-fetched schemas
 
         # 4) Run queries and print results
-        queries = [
-            "What is Amazon's stock price?",
-            "What is Apple's stock price?",
-            "What is Tesla's stock price?"
-        ]
-
-        print("\n=== Stock Price Queries ===")
-        for query in queries:
-            print(f"\nQuery: {query}")
-            try:
-                logger.debug(f"Processing query: {query}")
-                response = agent.run(query)
-                print(f"Answer: {response}")
-            except Exception as e:
-                logger.error(f"Error processing query '{query}': {e}")
-                print(f"Error: {str(e)}")
+        while q := input(">> ").strip():
+            # if user just wants to know "what tools" we have, skip the JSON plumbing
+            if "tool" in q.lower() and "available" in q.lower():
+                schemas = agent.discover_tools(agent.mcp_servers[0])
+                print("Available tools:", ", ".join(schemas.keys()))
+                continue
+            print(agent.mcp_query(q))
 
     except Exception as e:
         logger.error(f"Fatal error: {e}")

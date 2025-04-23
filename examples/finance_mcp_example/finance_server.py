@@ -1,42 +1,52 @@
-#!/usr/bin/env python3
 import signal
 import sys
 from fastmcp import FastMCP
-import yfinance as yf
-from loguru import logger
 
-# Configure logging
-logger.add(sys.stderr, level="INFO")
-
-# 1) Create your MCP server with SSE transport
+# Initialize MCP server
 mcp = FastMCP("Finance-Server")
 
 @mcp.tool()
-def get_stock_price(ticker: str) -> float:
-    """Return the latest market price for the given ticker."""
+def list_tools() -> list[str]:
+    """Return a list of all available stock-related tools."""
+    # This is purely introspective—no external API call.
+    return [tool.name for tool in mcp._transport.session.tools]
+
+@mcp.tool()
+def get_stock_price(ticker: str) -> dict:
+    """Fetch current stock price for a given ticker."""
+    import yfinance as yf
     try:
-        info = yf.Ticker(ticker).info
-        price = float(info.get("regularMarketPrice", 0.0))
-        logger.info(f"Fetched price for {ticker}: ${price}")
-        return price
+        price = float(yf.Ticker(ticker).history(period="1d")["Close"].iloc[-1])
+        return {"result": price}
     except Exception as e:
-        logger.error(f"Error fetching price for {ticker}: {e}")
-        return 0.0
+        return {"error": f"Invalid ticker or data fetch failed: {e}"}
+
+@mcp.tool()
+def calculate_var(returns: list[float], confidence: float = 0.95) -> float:
+    """Compute Value at Risk for a list of returns."""
+    import numpy as np
+    try:
+        sorted_returns = sorted(returns)
+        idx = int((1 - confidence) * len(sorted_returns))
+        return abs(sorted_returns[idx])
+    except Exception as e:
+        return {"error": f"VaR calculation failed: {e}"}
 
 def _signal_handler(signum, frame):
-    """Handle graceful shutdown."""
-    logger.info("Received shutdown signal, exiting...")
+    """Signal handler for clean shutdown."""
+    print("\n[Server] Received SIGINT, shutting down gracefully…")
+    # uvicorn will catch this and set should_exit=True
+    # no direct stop() on FastMCP; rely on Uvicorn's signal handling
     sys.exit(0)
 
 if __name__ == "__main__":
-    # Set up signal handling
+    # Install custom SIGINT handler before run
     signal.signal(signal.SIGINT, _signal_handler)
     
     try:
-        logger.info("Starting Finance MCP Server on http://127.0.0.1:8000 ...")
+        print("Starting Finance MCP Server on http://127.0.0.1:8000 …")
+        # Remove the unsupported parameter
         mcp.run(transport="sse")
     except KeyboardInterrupt:
-        logger.info("Server stopped by user")
-    except Exception as e:
-        logger.error(f"Server error: {e}")
-        sys.exit(1)
+        # Fallback if sys.exit doesn't propagate
+        print("\n[Server] KeyboardInterrupt caught, exiting cleanly.")
