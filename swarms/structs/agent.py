@@ -45,7 +45,7 @@ from swarms.structs.safe_loading import (
 )
 from swarms.telemetry.main import log_agent_data
 from swarms.tools.base_tool import BaseTool
-from swarms.tools.mcp_integration import MCPServerSseParams, batch_mcp_flow, mcp_flow_get_tool_schema
+from swarms.tools.mcp_integration import MCPServerSseParams, batch_mcp_flow, mcp_flow_get_tool_schema, batch_mcp_get_tool_schemas, mcp_flow_sync, extract_text_from_mcp_result
 from swarms.tools.tool_parse_exec import parse_and_execute_json
 from swarms.utils.any_to_str import any_to_str
 from swarms.utils.data_to_text import data_to_text
@@ -286,7 +286,6 @@ class Agent:
         agent_name: Optional[str] = "swarm-worker-01",
         agent_description: Optional[str] = None,
         system_prompt: Optional[str] = AGENT_SYSTEM_PROMPT_3,
-        # TODO: Change to callable, then parse the callable to a string
         tools: List[Callable] = None,
         dynamic_temperature_enabled: Optional[bool] = False,
         sop: Optional[str] = None,
@@ -316,15 +315,13 @@ class Agent:
         callbacks: Optional[List[Callable]] = None,
         search_algorithm: Optional[Callable] = None,
         logs_to_filename: Optional[str] = None,
-        evaluator: Optional[Callable] = None,  # Custom LLM or agent
+        evaluator: Optional[Callable] = None,
         stopping_func: Optional[Callable] = None,
         custom_loop_condition: Optional[Callable] = None,
-        sentiment_threshold: Optional[
-            float] = None,  # Evaluate on output using an external model
+        sentiment_threshold: Optional[float] = None,
         custom_exit_command: Optional[str] = "exit",
         sentiment_analyzer: Optional[Callable] = None,
         limit_tokens_from_string: Optional[Callable] = None,
-        # [Tools]
         custom_tools_prompt: Optional[Callable] = None,
         tool_schema: ToolUsageType = None,
         output_type: HistoryOutputType = "str",
@@ -338,7 +335,7 @@ class Agent:
         algorithm_of_thoughts: bool = False,
         tree_of_thoughts: bool = False,
         tool_choice: str = "auto",
-        rules: str = None,  # type: ignore
+        rules: str = None,
         planning: Optional[str] = False,
         planning_prompt: Optional[str] = None,
         custom_planning_prompt: str = None,
@@ -352,7 +349,6 @@ class Agent:
         temperature: float = 0.1,
         workspace_dir: str = "agent_workspace",
         timeout: Optional[int] = None,
-        # short_memory: Optional[str] = None,
         created_at: float = time.time(),
         return_step_meta: Optional[bool] = False,
         tags: Optional[List[str]] = None,
@@ -383,7 +379,8 @@ class Agent:
         role: agent_roles = "worker",
         no_print: bool = False,
         tools_list_dictionary: Optional[List[Dict[str, Any]]] = None,
-        mcp_servers: Optional[list] = None,  # list[MCPServerSseParams]
+        mcp_servers: Optional[list] = None,
+        nl_to_mcp: Optional[bool] = False,
         *args,
         **kwargs,
     ):
@@ -501,8 +498,30 @@ class Agent:
         self.role = role
         self.no_print = no_print
         self.tools_list_dictionary = tools_list_dictionary
-        self.mcp_servers = mcp_servers or [
-        ]  # Initialize mcp_servers to an empty list if None
+        self.mcp_servers = mcp_servers or []
+        self.nl_to_mcp = nl_to_mcp  # Enable auto-conversion of natural language to MCP calls
+
+        # ◀── fetch MCP tool schemas in a fresh event loop ──▶
+        def _get_schemas_sync(params):
+            import asyncio
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(
+                    batch_mcp_get_tool_schemas(params)
+                )
+            finally:
+                loop.close()
+
+        try:
+            schemas_list = _get_schemas_sync(self.mcp_servers)
+            self.tool_schemas = {
+                tool_name: schema
+                for server_schema in schemas_list
+                for tool_name, schema in server_schema.items()
+            }
+        except Exception:
+            # if the server isn't reachable yet, just start with empty
+            self.tool_schemas = {}
 
         self._cached_llm = (
             None  # Add this line to cache the LLM instance
@@ -891,6 +910,20 @@ class Agent:
                     f"Task Request for {self.agent_name}",
                 )
 
+            # Check for nl_to_mcp flag and convert if needed
+            if hasattr(self, 'nl_to_mcp') and self.nl_to_mcp and self.mcp_servers:
+                try:
+                    # Check if it's already JSON
+                    try:
+                        json.loads(task)
+                        # It's already JSON, no need to convert
+                    except (json.JSONDecodeError, TypeError):
+                        # It's natural language, convert to MCP JSON
+                        task = self._prepare_mcp_call_from_nl(task)
+                except Exception as e:
+                    logger.error(f"Error in automatic NL to MCP conversion: {e}")
+                    # Continue with the task as-is
+
             while (self.max_loops == "auto" or loop_count < self.max_loops):
                 loop_count += 1
 
@@ -956,19 +989,24 @@ class Agent:
                                 out = self.parse_and_execute_tools(response)
                             if hasattr(self,
                                        'mcp_servers') and self.mcp_servers:
-                                out = self.mcp_execution_flow(response)
+                                # 1) Call the tool and get raw CallToolResult or list thereof
+                                raw = self.mcp_execution_flow(response)
 
-                            self.short_memory.add(role="Tool Executor",
+                                # 2) Unwrap into plain text
+                                from mcp.types import CallToolResult, TextContent
+                                def to_text(x):
+                                    if isinstance(x, CallToolResult):
+                                        return "\n".join(tc.text for tc in x.content if isinstance(tc, TextContent))
+                                    return str(x)
+                                text = "\n".join(to_text(item) for item in (raw if isinstance(raw, list) else [raw]))
+
+                                # 3) Log and feed only the string into the LLM
+                                self.short_memory.add(role="Tool Executor", content=text)
+                                agent_print(f"{self.agent_name} - Tool Executor", text, loop_count, self.streaming_on)
+                                out = self.llm.run(task=f"Explain to the user:\n\n{text}")
+
+                            self.short_memory.add(role=self.agent_name,
                                                   content=out)
-
-                            agent_print(
-                                f"{self.agent_name} - Tool Executor",
-                                out,
-                                loop_count,
-                                self.streaming_on,
-                            )
-
-                            out = self.llm.run(out)
 
                             agent_print(
                                 f"{self.agent_name} - Agent Analysis",
@@ -976,9 +1014,6 @@ class Agent:
                                 loop_count,
                                 self.streaming_on,
                             )
-
-                            self.short_memory.add(role=self.agent_name,
-                                                  content=out)
 
                         self.sentiment_and_evaluator(response)
 
@@ -2541,41 +2576,139 @@ class Agent:
             return error_msg
 
     def mcp_execution_flow(self, response: str) -> str:
-        """Synchronous wrapper for MCP execution flow.
-
-        This method creates a new event loop if needed or uses the existing one
-        to run the async MCP execution flow.
-
-        Args:
-            response (str): The response from the LLM containing tool calls or natural language.
-
-        Returns:
-            str: The result of executing the tool calls with preserved formatting.
+        """
+        Execute a synchronous MCP flow:
+        1. Parse JSON from LLM response
+        2. Call sync function
+        3. Return textual result
         """
         try:
-            # Check if we're already in an event loop
+            # Parse JSON response
+            logger.debug(f"Parsing JSON response: {response}")
             try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                # No event loop exists, create one
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
+                data = json.loads(response)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse JSON: {e}")
+                raise ValueError(f"Invalid JSON response: {response}")
 
-            if loop.is_running():
-                # We're in an async context, use run_coroutine_threadsafe
-                logger.debug(
-                    "Using run_coroutine_threadsafe to execute MCP flow")
-                future = asyncio.run_coroutine_threadsafe(
-                    self.amcp_execution_flow(response), loop)
-                return future.result(
-                    timeout=30)  # Adding timeout to prevent hanging
-            else:
-                # We're not in an async context, use loop.run_until_complete
-                logger.debug("Using run_until_complete to execute MCP flow")
-                return loop.run_until_complete(
-                    self.amcp_execution_flow(response))
+            # Construct payload
+            payload = {
+                "tool": data.get("tool"),
+                "parameters": data.get("parameters", {})
+            }
+            logger.debug(f"Constructed payload: {payload}")
 
+            # Call MCP flow
+            if not self.mcp_servers:
+                raise ValueError("No MCP servers configured")
+                
+            result = mcp_flow_sync(self.mcp_servers[0], payload)
+            logger.debug(f"MCP flow result: {result}")
+
+            # Extract text from result
+            text_result = extract_text_from_mcp_result(result)
+            logger.debug(f"Extracted text result: {text_result}")
+            
+            return text_result
         except Exception as e:
-            error_msg = f"Error in MCP execution flow wrapper: {str(e)}"
-            logger.error(error_msg)
-            return error_msg
+            logger.error(f"Error in mcp_execution_flow: {str(e)}")
+            raise
+
+    def interactive_run(self):
+        """Run the agent in interactive mode, accepting user input and providing responses.
+        
+        This method provides a command-line interface for interacting with the agent.
+        The agent will continue running until the user enters the custom exit command
+        (default: 'exit') or an empty input.
+        """
+        print(f"{self.agent_name} ready! (type '{self.custom_exit_command}' to quit)\n")
+        while True:
+            query = input(">> ").strip()
+            if not query or query.lower() == self.custom_exit_command.lower():
+                return
+            response = self.run(query)
+            print(f"\n{self.agent_name}:\n{response}\n")
+
+    def _prepare_mcp_call_from_nl(self, query: str) -> str:
+        """
+        Convert natural language query to MCP tool call JSON.
+        
+        Args:
+            query (str): Natural language query from user
+            
+        Returns:
+            str: JSON string formatted for MCP tool call
+        """
+        # Get tool schemas from cached instance
+        tool_schemas = getattr(self, "tool_schemas", {})
+            
+        # Build a tool description string
+        tool_descriptions = []
+        for name, schema in tool_schemas.items():
+            if schema and isinstance(schema, dict) and 'parameters' in schema:
+                params = schema.get('parameters', {}).get('properties', {})
+                tool_descriptions.append(f"- {name}: {json.dumps(params)}")
+            else:
+                tool_descriptions.append(f"- {name}")
+        
+        # Build prompt to convert NL to JSON
+        prompt = (
+            "Convert the following user request into a properly formatted JSON for an MCP tool call.\n"
+            "Available tools and parameters:\n" + 
+            "\n".join(tool_descriptions) + 
+            "\n\nOutput format MUST be:\n"
+            '{"tool_name": "name_of_tool", "param1": value1, "param2": value2}\n\n'
+            f"User request: {query}\n\n"
+            "Provide ONLY the JSON object without explanations or markdown."
+        )
+        
+        # Use LLM to convert to JSON
+        try:
+            json_str = self.llm.run(task=prompt)
+            
+            # Clean up JSON string
+            json_str = json_str.strip()
+            if "```" in json_str:
+                if "```json" in json_str:
+                    json_str = json_str.split("```json", 1)[1]
+                else:
+                    json_str = json_str.split("```", 1)[1]
+                if json_str.endswith("```"):
+                    json_str = json_str.rsplit("```", 1)[0]
+            
+            # Validate JSON by parsing
+            parsed = json.loads(json_str.strip())
+            return json.dumps(parsed)
+        except Exception as e:
+            logger.error(f"Error converting natural language to MCP call: {e}")
+            raise ValueError(f"Failed to convert query to MCP tool call: {e}")
+
+    def prepare_mcp_call(self, tool_name: str, **kwargs) -> Dict[str, Any]:
+        """Prepare an MCP call by looking up the tool schema and validating inputs.
+        
+        Args:
+            tool_name: Name of the tool to call
+            **kwargs: Arguments to pass to the tool
+            
+        Returns:
+            Dict containing the prepared MCP call payload
+            
+        Raises:
+            ValueError: If tool schema not found or inputs don't match schema
+        """
+        # Look up tool schema
+        if tool_name not in self.tool_schemas:
+            raise ValueError(f"Tool {tool_name} not found in cached schemas")
+            
+        schema = self.tool_schemas[tool_name]
+        
+        # Validate inputs match schema
+        for param in schema.get("parameters", {}).get("properties", {}):
+            if param not in kwargs:
+                raise ValueError(f"Missing required parameter: {param}")
+                
+        # Construct payload
+        return {
+            "tool": tool_name,
+            "parameters": kwargs
+        }

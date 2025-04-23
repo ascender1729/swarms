@@ -1,0 +1,5 @@
+fastmcp>=0.1.0
+yfinance>=0.2.36
+numpy>=1.24.0
+swarms>=0.1.0
+litellm>=0.1.0 
