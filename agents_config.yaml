@@ -1,0 +1,20 @@
+agents:
+  - agent_name: "Financial-Analysis-Agent"
+    system_prompt: "Analyze the best investment strategy for 2024."
+    model_name: "gpt-4o-mini"
+    max_loops: 1
+    autosave: true
+    verbose: false
+    context_length: 100000
+    output_type: "str"
+    task: "Analyze stock options for long-term gains."
+
+  - agent_name: "Risk-Analysis-Agent"
+    system_prompt: "Evaluate the risk of tech stocks in 2024."
+    model_name: "gpt-4o-mini"
+    max_loops: 2
+    autosave: false
+    verbose: true
+    context_length: 50000
+    output_type: "json"
+    task: "What are the riskiest stocks in the tech sector?"

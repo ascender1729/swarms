@@ -212,7 +212,7 @@ def create_agents_from_yaml(
                     model_name=agent_config["model_name"]
                 )
             else:
-                model_name = "gpt-4"
+                model_name = "gpt-4o-mini"
                 logger.info(
                     f"No model specified, using default: {model_name}"
                 )

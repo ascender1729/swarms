@@ -1,17 +1,13 @@
 from swarms.structs.agent import Agent
-from swarms.prompts.finance_agent_sys_prompt import (
-    FINANCIAL_AGENT_SYS_PROMPT,
+from swarms.structs.swarm_router import SwarmRouter
+from swarms.agents.create_agents_from_yaml import (
+    create_agents_from_yaml,
 )
+from swarms.utils.litellm_wrapper import LiteLLM
 
-# Initialize the agent
-agent = Agent(
-    agent_name="Financial-Analysis-Agent",
-    agent_description="Personal finance advisor agent",
-    system_prompt=FINANCIAL_AGENT_SYS_PROMPT,
-    max_loops=2,
-    model_name="gpt-4o-mini",
-    dynamic_temperature_enabled=True,
-    interactive=False,
-)
+# Initialize the model
+model = LiteLLM(model_name="gpt-4o-mini")
 
-agent.run("Conduct an analysis of the best real undervalued ETFs")
+# Create agents and return them as a list
+agents = create_agents_from_yaml(model=model, yaml_file="agents_config.yaml", return_type="agents")
+print(agents)
