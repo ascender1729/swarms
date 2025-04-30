@@ -18,9 +18,85 @@ To install Swarms, run:
 $ pip install -U swarms
 ```
 
+### **Usage Example: Creating Agents from YAML**
+
+Here's a simple example of creating multiple agents from a YAML configuration file. This example creates a financial analysis agent and a risk analysis agent.
+
+1. First, create your YAML configuration file (`agents_config.yaml`):
+
+```yaml
+agents:
+  - agent_name: "Financial-Analysis-Agent"
+    system_prompt: "You are a financial analysis expert. Analyze market trends and provide investment recommendations."
+    model_name: "claude-3-opus-20240229"
+    max_loops: 1
+    autosave: true
+    verbose: false
+    context_length: 100000
+    output_type: "str"
+    task: "Analyze tech stocks for 2024 investment strategy. Provide detailed analysis and recommendations."
+
+  - agent_name: "Risk-Analysis-Agent"
+    system_prompt: "You are a risk analysis expert. Evaluate investment risks and provide mitigation strategies."
+    model_name: "claude-3-opus-20240229"
+    max_loops: 2
+    autosave: false
+    verbose: true
+    context_length: 50000
+    output_type: "json"
+    task: "Conduct a comprehensive risk analysis of the top 5 tech companies in 2024. Include risk factors and mitigation strategies."
+```
+
+2. Create a minimal Python script (`example.py`) to run the agents:
+
+```python
+from swarms.agents.create_agents_from_yaml import create_agents_from_yaml
+
+# Create agents and get task results
+create_agents_from_yaml(
+    yaml_file="agents_config.yaml",
+    return_type="tasks"
+)
+```
+
+3. Run the example:
+```bash
+python example.py
+```
+
+This will:
+- Create the agents specified in the YAML file
+- Execute their configured tasks
+- Display the results in a formatted way
+
+The output will show:
+- Each agent's analysis
+- Task execution results
+- Formatted output based on the specified output_type
+
+### **Key Configuration Fields in YAML**
+
+- **agent_name**: Name of the agent
+- **system_prompt**: The system prompt that guides the agent's behavior
+- **model_name**: The language model to use (e.g., "claude-3-opus-20240229")
+- **max_loops**: Maximum number of iterations for task execution
+- **autosave**: Whether to automatically save agent state
+- **verbose**: Enable detailed logging
+- **context_length**: Maximum context length for the model
+- **output_type**: Format of the output ("str" or "json")
+- **task**: The task for the agent to execute
+
+### **Return Types**
+
+The `create_agents_from_yaml` function supports different return types:
+
+- **"tasks"**: Returns task execution results
+- **"agents"**: Returns the created agent objects
+- **"both"**: Returns both agents and task results
+
 ### **Usage Example: Single Agent**
 
-Here’s a simple example of creating a financial analysis agent powered by OpenAI’s GPT-4 model. This agent will analyze financial queries like how to set up a ROTH IRA.
+Here's a simple example of creating a financial analysis agent powered by OpenAI's GPT-4 model. This agent will analyze financial queries like how to set up a ROTH IRA.
 
 ```python
 import os
@@ -62,8 +138,8 @@ print(out)
   - `autosave`: Auto-saves the state after each iteration.
   
 - **Methods:**
-  - `run(task: str)`: Executes the agent’s task.
-  - `ingest_docs(doc_path: str)`: Ingests documents into the agent’s knowledge base.
+  - `run(task: str)`: Executes the agent's task.
+  - `ingest_docs(doc_path: str)`: Ingests documents into the agent's knowledge base.
   - `filtered_run(task: str)`: Runs agent with a filtered system prompt.
 
 -----
@@ -121,7 +197,7 @@ agents:
 ### Key Configuration Fields:
 - **agent_name**: Name of the agent.
 - **model**: Defines the language model settings (e.g., API key, model name, temperature, and max tokens).
-- **system_prompt**: The system prompt used to guide the agent’s behavior.
+- **system_prompt**: The system prompt used to guide the agent's behavior.
 - **task**: (Optional) Task for the agent to execute once created.
 
 ---
@@ -248,7 +324,7 @@ Steps:
 
 For example, here's an example on how to create an agent from griptape.
 
-Here’s how you can create a custom **Griptape** agent that integrates with the **Swarms** framework by inheriting from the `Agent` class in **Swarms** and overriding the `run(task: str) -> str` method.
+Here's how you can create a custom **Griptape** agent that integrates with the **Swarms** framework by inheriting from the `Agent` class in **Swarms** and overriding the `run(task: str) -> str` method.
 
 
 ```python
@@ -420,7 +496,7 @@ print(output)
 
 ### 5. **Spreadsheet Swarm**
 
-**Overview**: `SpreadSheetSwarm` enables the management of thousands of agents simultaneously, where each agent operates on its own thread. It’s ideal for overseeing large-scale agent outputs.
+**Overview**: `SpreadSheetSwarm` enables the management of thousands of agents simultaneously, where each agent operates on its own thread. It's ideal for overseeing large-scale agent outputs.
 
 #### Mermaid Graph:
 
@@ -466,7 +542,7 @@ These are the key swarm architectures available in the **Swarms Framework**. Eac
 #### **Workflow Classes**
 
 - **SequentialWorkflow:**
-  - Chains agents, where one agent's output becomes the next agent’s input.
+  - Chains agents, where one agent's output becomes the next agent's input.
   
 - **AgentRearrange:**
   - Dynamically rearranges agent tasks either in parallel or sequentially based on defined flow.
