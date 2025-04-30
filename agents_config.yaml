@@ -1,7 +1,7 @@
 agents:
   - agent_name: "Financial-Analysis-Agent"
     system_prompt: "Analyze the best investment strategy for 2024."
-    model_name: "gpt-4o-mini"
+    model_name: "claude-3-opus-20240229"
     max_loops: 1
     autosave: true
     verbose: false
@@ -11,7 +11,7 @@ agents:
 
   - agent_name: "Risk-Analysis-Agent"
     system_prompt: "Evaluate the risk of tech stocks in 2024."
-    model_name: "gpt-4o-mini"
+    model_name: "claude-3-opus-20240229"
     max_loops: 2
     autosave: false
     verbose: true
