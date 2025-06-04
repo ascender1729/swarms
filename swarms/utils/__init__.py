@@ -17,6 +17,9 @@ from swarms.utils.pdf_to_text import pdf_to_text
 from swarms.utils.try_except_wrapper import try_except_wrapper
 from swarms.utils.calculate_func_metrics import profile_func
 from swarms.utils.litellm_tokenizer import count_tokens
+from swarms.utils.metrics_decorator import metrics_decorator
+from swarms.utils.math_eval import math_eval
+from swarms.utils.print_class_parameters import print_class_parameters
 
 
 __all__ = [
@@ -35,4 +38,7 @@ __all__ = [
     "try_except_wrapper",
     "profile_func",
     "count_tokens",
+    "metrics_decorator",
+    "math_eval",
+    "print_class_parameters",
 ]
