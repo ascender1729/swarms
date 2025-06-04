@@ -1759,11 +1759,10 @@ class Agent:
                 )
 
             # Reinitialize executor if needed
-            # if not hasattr(self, "executor") or self.executor is None:
-            with ThreadPoolExecutor(
-                max_workers=os.cpu_count()
-            ) as executor:
-                self.executor = executor
+            if not hasattr(self, "executor") or self.executor is None:
+                self.executor = ThreadPoolExecutor(
+                    max_workers=os.cpu_count()
+                )
 
             # # Reinitialize tool structure if needed
             # if hasattr(self, 'tools') and (self.tools or getattr(self, 'list_base_models', None)):
