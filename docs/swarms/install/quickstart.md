@@ -11,6 +11,24 @@
   WORKSPACE_DIR="agent_workspace"
   ```
 
+### Configure Environment Variables
+
+Create a `.env` file in your project root and add your provider keys along with
+the workspace directory:
+
+```bash
+OPENAI_API_KEY="your-openai-key"
+WORKSPACE_DIR="agent_workspace"
+```
+
+Load these variables before running an agent:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+```
+
 ### **Installation**
 
 To install Swarms, run:
