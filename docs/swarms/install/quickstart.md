@@ -18,6 +18,23 @@ To install Swarms, run:
 $ pip install -U swarms
 ```
 
+### Configure Environment Variables
+
+Create a `.env` file in your project root and add your provider keys along with
+the workspace directory:
+
+```bash
+OPENAI_API_KEY="your-openai-key"
+WORKSPACE_DIR="agent_workspace"
+```
+
+Load these variables before running an agent:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
+
 ### **Usage Example: Single Agent**
 
 Here's a simple example of creating a financial analysis agent powered by OpenAI's GPT-4o-mini model. This agent will analyze financial queries like how to set up a ROTH IRA.
