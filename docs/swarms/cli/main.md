@@ -112,3 +112,4 @@ Below is a detailed explanation of the available commands:
   ```
   You can see a full programmatic example in
   `examples/agent_autosave_registry_cli_example.py`.
+

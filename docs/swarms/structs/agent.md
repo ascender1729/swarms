@@ -259,6 +259,7 @@ agent = Agent(
 For a small runnable demonstration that builds agents and lists them via the CLI
 see `examples/agent_autosave_registry_cli_example.py`.
 
+
 # Run the agent
 response = agent.run(
     "How can I establish a ROTH IRA to buy stocks and get a tax break? What are the criteria?"
