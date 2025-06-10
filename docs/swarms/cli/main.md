@@ -95,10 +95,18 @@ Below is a detailed explanation of the available commands:
   swarms read-docs
   ```
 
-- **run-agents**  
+- **run-agents**
   Executes your agents from the `agents.yaml` configuration file, which defines the structure and behavior of your agents. Refer to this document for how to leverage yamls for fast, reliable, and simple agent orchestration. [CLICK HERE](https://docs.swarms.world/en/latest/swarms/agents/create_agents_yaml/) You can customize what yaml file to run with `--yaml-file`
 
   Usage:
   ```bash
   swarms run-agents --yaml-file agents.yaml
+  ```
+
+- **list-agents**
+  Lists all agents saved in your workspace directory.
+
+  Usage:
+  ```bash
+  swarms list-agents --workspace agent_workspace
   ```

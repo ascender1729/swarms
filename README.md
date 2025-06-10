@@ -180,6 +180,13 @@ GROQ_API_KEY=""
 
 - [Learn more about the environment configuration here](https://docs.swarms.world/en/latest/swarms/install/env/)
 
+### CLI Quickstart
+Agents saved with `autosave=True` are written to your workspace. You can list them with:
+
+```bash
+swarms list-agents --workspace agent_workspace
+```
+
 ---
 
 ## `Agent` Class

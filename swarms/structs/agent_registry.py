@@ -1,5 +1,8 @@
 import json
 import time
+import os
+import glob
+import yaml
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional
@@ -90,6 +93,26 @@ class AgentRegistry:
         if agents:
             self.add_many(agents)
 
+    def load_from_workspace(self, workspace_dir: str) -> None:
+        """Populate the registry with agents found in a workspace directory."""
+        json_files = glob.glob(os.path.join(workspace_dir, "*.json"))
+        yaml_files = glob.glob(os.path.join(workspace_dir, "*.yaml"))
+
+        for path in json_files + yaml_files:
+            try:
+                with open(path, "r") as f:
+                    data = (
+                        json.load(f)
+                        if path.endswith(".json")
+                        else yaml.safe_load(f)
+                    )
+                if isinstance(data, dict):
+                    data["autosave"] = False
+                    agent = Agent(**data)
+                    self.agents[agent.agent_name] = agent
+            except Exception as e:
+                logger.warning(f"Failed to load agent from {path}: {e}")
+
     def add(self, agent: Agent) -> None:
         """
         Adds a new agent to the registry.
@@ -116,6 +139,9 @@ class AgentRegistry:
             try:
                 self.agents[name] = agent
                 logger.info(f"Agent {name} added successfully.")
+                if self.auto_save or agent.autosave:
+                    agent.model_dump_json()
+                    agent.model_dump_yaml()
             except ValidationError as e:
                 logger.error(f"Validation error: {e}")
                 raise
@@ -188,6 +214,9 @@ class AgentRegistry:
                 logger.info(
                     f"Agent {agent_name} updated successfully."
                 )
+                if self.auto_save or new_agent.autosave:
+                    new_agent.model_dump_json()
+                    new_agent.model_dump_yaml()
             except ValidationError as e:
                 logger.error(f"Validation error: {e}")
                 raise
