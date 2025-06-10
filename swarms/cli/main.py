@@ -16,6 +16,7 @@ from swarms.agents.create_agents_from_yaml import (
     create_agents_from_yaml,
 )
 from swarms.cli.onboarding_process import OnboardingProcess
+from swarms.structs.agent_registry import AgentRegistry
 from swarms.utils.formatter import formatter
 
 # Initialize console with custom styling
@@ -91,6 +92,7 @@ def create_command_table() -> Table:
         ("get-api-key", "Retrieve your API key from the platform"),
         ("check-login", "Verify login status and initialize cache"),
         ("run-agents", "Execute agents from your YAML configuration"),
+        ("list-agents", "List saved agents in the workspace"),
         ("auto-upgrade", "Update Swarms to the latest version"),
         ("book-call", "Schedule a strategy session with our team"),
         ("autoswarm", "Generate and execute an autonomous swarm"),
@@ -242,6 +244,7 @@ def main():
                 "get-api-key",
                 "check-login",
                 "run-agents",
+                "list-agents",
                 "auto-upgrade",
                 "book-call",
                 "autoswarm",
@@ -262,6 +265,12 @@ def main():
             type=str,
             default="gpt-4",
             help="Model for autoswarm",
+        )
+        parser.add_argument(
+            "--workspace",
+            type=str,
+            default="agent_workspace",
+            help="Workspace directory for list-agents",
         )
 
         args = parser.parse_args()
@@ -390,6 +399,16 @@ def main():
                             "2. Verify your API keys are set\n"
                             "3. Check network connectivity",
                         )
+            elif args.command == "list-agents":
+                registry = AgentRegistry()
+                registry.load_from_workspace(args.workspace)
+                names = registry.list_agents()
+                if names:
+                    for n in names:
+                        console.print(n)
+                else:
+                    console.print("No agents found in workspace")
+
             elif args.command == "book-call":
                 webbrowser.open(
                     "https://cal.com/swarms/swarms-strategy-session"

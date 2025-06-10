@@ -591,6 +591,15 @@ class Agent:
         if self.long_term_memory is not None:
             self.rag_handler = self.rag_setup_handling()
 
+        if self.autosave:
+            try:
+                self.model_dump_json()
+                self.model_dump_yaml()
+            except Exception as autosave_error:
+                logger.warning(
+                    f"Autosave during initialization failed: {autosave_error}"
+                )
+
     def rag_setup_handling(self):
         return AgentRAGHandler(
             long_term_memory=self.long_term_memory,
