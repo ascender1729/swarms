@@ -180,6 +180,16 @@ GROQ_API_KEY=""
 
 - [Learn more about the environment configuration here](https://docs.swarms.world/en/latest/swarms/install/env/)
 
+### CLI Quickstart
+Agents saved with `autosave=True` are written to your workspace. You can list them with:
+
+```bash
+swarms list-agents --workspace agent_workspace
+```
+See `examples/agent_autosave_registry_cli_example.py` for a full workflow that
+creates autosaving agents, loads them from the workspace, and calls this CLI
+command programmatically.
+
 ---
 
 ## `Agent` Class

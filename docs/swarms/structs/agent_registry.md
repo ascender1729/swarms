@@ -110,6 +110,18 @@ Lists all agent identifiers in the registry.
   agent_ids = registry.list_agents()
   ```
 
+### `load_from_workspace(workspace_dir: str) -> None`
+
+Scans the given workspace directory for agent JSON or YAML files and adds them to the registry.
+
+- **Parameters:**
+  - `workspace_dir` (`str`): Path to the directory containing saved agent files.
+
+- **Usage Example:**
+  ```python
+  registry.load_from_workspace("agent_workspace")
+  ```
+
 ### `query(self, condition: Optional[Callable[[Agent], bool]] = None) -> List[Agent]`
 
 Queries agents based on a condition.

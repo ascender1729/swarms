@@ -67,7 +67,7 @@ graph TD
 | `sop` | Standard operating procedure for the agent. |
 | `sop_list` | List of strings representing the standard operating procedure. |
 | `saved_state_path` | File path for saving and loading the agent's state. |
-| `autosave` | Boolean indicating whether to automatically save the agent's state. |
+| `autosave` | Automatically write the agent's JSON and YAML to the workspace whenever it is created or updated. |
 | `context_length` | Maximum length of the context window (in tokens) for the LLM. |
 | `user_name` | Name used to represent the user in the conversation. |
 | `self_healing_enabled` | Boolean indicating whether to attempt self-healing in case of errors. |
@@ -254,6 +254,10 @@ agent = Agent(
     return_step_meta=False,
     output_type="str",
 )
+# Since `autosave=True`, JSON and YAML files for this agent are saved
+# to `agent_workspace/Financial-Analysis-Agent.json` and `.yaml`.
+For a small runnable demonstration that builds agents and lists them via the CLI
+see `examples/agent_autosave_registry_cli_example.py`.
 
 # Run the agent
 response = agent.run(
@@ -521,6 +525,7 @@ agent = Agent(
     streaming_on=False,
     auto_generate_prompt=True,  # Enable automated prompt engineering
 )
+# Autosave writes `Financial-Analysis-Agent.json` and `.yaml` into your workspace.
 
 # Run the agent with a task description and specify the device
 agent.run(
