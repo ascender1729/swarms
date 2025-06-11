@@ -102,3 +102,7 @@ Below is a detailed explanation of the available commands:
   ```bash
   swarms run-agents --yaml-file agents.yaml
   ```
+
+Agent state files are stored in `WORKSPACE_DIR/agents`. Commands that list or
+manage agents read directly from this directory so you can edit files manually
+and have them reflected in the CLI.
