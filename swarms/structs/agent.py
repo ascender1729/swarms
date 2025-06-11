@@ -371,7 +371,7 @@ class Agent:
         frequency_penalty: float = 0.8,
         presence_penalty: float = 0.6,
         temperature: float = 0.5,
-        workspace_dir: str = "agent_workspace",
+        workspace_dir: Optional[str] = None,
         timeout: Optional[int] = None,
         # short_memory: Optional[str] = None,
         created_at: float = time.time(),
@@ -432,6 +432,11 @@ class Agent:
         self.stopping_token = stopping_token
         self.interactive = interactive
         self.dashboard = dashboard
+        # Resolve workspace directory from parameter or environment variable
+        self.workspace_dir = workspace_dir or os.getenv("WORKSPACE_DIR", "./workspace")
+        self.agents_dir = os.path.join(self.workspace_dir, "agents")
+        os.makedirs(self.agents_dir, exist_ok=True)
+
         self.saved_state_path = saved_state_path
         self.return_history = return_history
         self.dynamic_temperature_enabled = dynamic_temperature_enabled
@@ -444,7 +449,10 @@ class Agent:
         self.system_prompt = system_prompt
         self.agent_name = agent_name
         self.agent_description = agent_description
-        self.saved_state_path = f"{self.agent_name}_state.json"
+        if self.saved_state_path is None:
+            self.saved_state_path = os.path.join("agents", f"{self.agent_name}.json")
+        elif not os.path.isabs(self.saved_state_path):
+            self.saved_state_path = os.path.join("agents", self.saved_state_path)
         self.autosave = autosave
         self.response_filters = []
         self.self_healing_enabled = self_healing_enabled
@@ -502,7 +510,7 @@ class Agent:
         self.frequency_penalty = frequency_penalty
         self.presence_penalty = presence_penalty
         self.temperature = temperature
-        self.workspace_dir = workspace_dir
+        # workspace_dir already resolved above
         self.timeout = timeout
         self.created_at = created_at
         self.return_step_meta = return_step_meta
@@ -590,6 +598,12 @@ class Agent:
 
         if self.long_term_memory is not None:
             self.rag_handler = self.rag_setup_handling()
+
+        if self.autosave:
+            try:
+                self.save()
+            except Exception as e:
+                logger.error(f"Autosave on init failed: {e}")
 
     def rag_setup_handling(self):
         return AgentRAGHandler(
@@ -1470,10 +1484,11 @@ class Agent:
             if not resolved_path.endswith(".json"):
                 resolved_path += ".json"
 
-            # Create full path including workspace directory
-            full_path = os.path.join(
-                self.workspace_dir, resolved_path
-            )
+            # Create full path including workspace directory if needed
+            if os.path.isabs(resolved_path):
+                full_path = resolved_path
+            else:
+                full_path = os.path.join(self.workspace_dir, resolved_path)
             backup_path = full_path + ".backup"
             temp_path = full_path + ".temp"
 
@@ -1638,14 +1653,13 @@ class Agent:
                     else (
                         f"{self.agent_name}.json"
                         if self.agent_name
-                        else (
-                            f"{self.workspace_dir}/{self.agent_name}_state.json"
-                            if self.workspace_dir and self.agent_name
-                            else None
-                        )
+                        else None
                     )
                 )
             )
+
+            if not os.path.isabs(resolved_path):
+                resolved_path = os.path.join(self.workspace_dir, resolved_path)
 
             # Load state using SafeStateManager
             SafeStateManager.load_state(self, resolved_path)
@@ -2331,12 +2345,12 @@ class Agent:
         )
 
         create_file_in_folder(
-            self.workspace_dir,
+            self.agents_dir,
             f"{self.agent_name}.json",
             str(self.to_json()),
         )
 
-        return f"Model saved to {self.workspace_dir}/{self.agent_name}.json"
+        return f"Model saved to {os.path.join(self.agents_dir, f'{self.agent_name}.json')}"
 
     def model_dump_yaml(self):
         logger.info(
@@ -2344,12 +2358,12 @@ class Agent:
         )
 
         create_file_in_folder(
-            self.workspace_dir,
+            self.agents_dir,
             f"{self.agent_name}.yaml",
             str(self.to_yaml()),
         )
 
-        return f"Model saved to {self.workspace_dir}/{self.agent_name}.yaml"
+        return f"Model saved to {os.path.join(self.agents_dir, f'{self.agent_name}.yaml')}"
 
     def handle_tool_schema_ops(self):
         if exists(self.tool_schema):
