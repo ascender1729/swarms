@@ -192,21 +192,21 @@ def retry_with_backoff(retries=3, backoff_in_seconds=1):
 
 
 @contextlib.contextmanager
-def get_or_create_event_loop():
-    """Context manager to handle event loop creation and cleanup."""
+def get_or_create_event_loop() -> asyncio.AbstractEventLoop:
+    """Return an event loop and ensure proper cleanup."""
+    created = False
     try:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        created = True
 
     try:
         yield loop
     finally:
-        # Only close the loop if we created it and it's not the main event loop
-        if loop != asyncio.get_event_loop() and not loop.is_running():
-            if not loop.is_closed():
-                loop.close()
+        if created and not loop.is_closed():
+            loop.close()
 
 
 def connect_to_mcp_server(connection: MCPConnection = None):
