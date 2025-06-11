@@ -178,6 +178,10 @@ ANTHROPIC_API_KEY=""
 GROQ_API_KEY=""
 ```
 
+`WORKSPACE_DIR` defines where agent configurations and logs are stored. If not
+set, Swarms defaults to `./workspace`. When `autosave=True` on an agent, its
+state will be written to `WORKSPACE_DIR/agents/{agent_name}.json` automatically.
+
 - [Learn more about the environment configuration here](https://docs.swarms.world/en/latest/swarms/install/env/)
 
 ---

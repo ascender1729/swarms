@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
@@ -59,6 +60,7 @@ class AgentRegistry:
         agents: Optional[List[Agent]] = None,
         return_json: bool = True,
         auto_save: bool = False,
+        workspace_dir: Optional[str] = None,
         *args,
         **kwargs,
     ):
@@ -78,6 +80,10 @@ class AgentRegistry:
         self.auto_save = auto_save
         self.agents: Dict[str, Agent] = {}
         self.lock = Lock()
+
+        self.workspace_dir = workspace_dir or os.getenv("WORKSPACE_DIR", "./workspace")
+        self.agents_dir = os.path.join(self.workspace_dir, "agents")
+        os.makedirs(self.agents_dir, exist_ok=True)
 
         # Initialize the agent registry
         self.agent_registry = AgentRegistrySchema(
@@ -224,10 +230,12 @@ class AgentRegistry:
             List[str]: A list of all agent names.
         """
         try:
-            with self.lock:
-                agent_names = list(self.agents.keys())
-                logger.info("Listing all agents.")
-                return agent_names
+            files = [
+                f for f in os.listdir(self.agents_dir) if f.endswith(".json")
+            ]
+            agent_names = [os.path.splitext(f)[0] for f in files]
+            logger.info("Listing all agents from workspace directory")
+            return agent_names
         except Exception as e:
             logger.error(f"Error: {e}")
             raise e
