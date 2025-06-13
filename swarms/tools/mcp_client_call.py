@@ -493,10 +493,72 @@ async def execute_tool_call_simple(
     output_type: Literal["json", "dict", "str", "formatted"] = "str",
     *args,
     **kwargs,
-) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Any]]:
     return await _execute_tool_call_simple(
         response=response,
         server_path=server_path,
+        connection=connection,
+        output_type=output_type,
+        *args,
+        **kwargs,
+    )
+
+
+async def _execute_mcp_call(
+    function_name: str,
+    server_url: str,
+    payload: Optional[Dict[str, Any]] = None,
+    connection: Optional[MCPConnection] = None,
+    output_type: Literal["json", "dict", "str"] = "str",
+    *args,
+    **kwargs,
+) -> Any:
+    """Execute a specific MCP tool call on a given server."""
+    payload = payload or {}
+
+    if connection is None:
+        connection = MCPConnection(url=server_url)
+
+    headers, timeout, transport, url = connect_to_mcp_server(connection)
+
+    try:
+        async with sse_client(url=url, headers=headers, timeout=timeout, *args, **kwargs) as (
+            read,
+            write,
+        ):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                call_result = await call_mcp_tool(
+                    session=session,
+                    call_tool_request_params=MCPCallToolRequestParams(
+                        name=function_name,
+                        arguments=payload,
+                    ),
+                )
+
+                if output_type == "json":
+                    return call_result.model_dump_json(indent=4)
+                if output_type == "dict":
+                    return call_result.model_dump()
+                return str(call_result)
+    except Exception as e:
+        logger.error(f"Error executing MCP tool {function_name} from {server_url}: {str(e)}")
+        raise MCPExecutionError(f"Tool execution failed: {str(e)}")
+
+
+async def execute_mcp_call(
+    function_name: str,
+    server_url: str,
+    payload: Optional[Dict[str, Any]] = None,
+    connection: Optional[MCPConnection] = None,
+    output_type: Literal["json", "dict", "str"] = "str",
+    *args,
+    **kwargs,
+) -> Any:
+    return await _execute_mcp_call(
+        function_name=function_name,
+        server_url=server_url,
+        payload=payload,
         connection=connection,
         output_type=output_type,
         *args,

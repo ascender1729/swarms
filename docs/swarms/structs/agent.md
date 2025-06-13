@@ -629,3 +629,21 @@ print(type(str_to_dict(out)))
 14. Use `scheduled_run_date` for automated task scheduling
 
 By following these guidelines and leveraging the Swarm Agent's extensive features, you can create powerful, flexible, and efficient autonomous agents for a wide range of applications.
+
+### Multiple MCP Tool Execution
+
+The `Agent` class can orchestrate tools across several MCP servers. Provide a list of server URLs via `mcp_urls` or environment variable `MCP_URLS` and call `execute_multiple_mcp_payloads()`:
+
+```python
+from swarms import Agent
+
+agent = Agent(
+    agent_name="Multi-MCP-Agent",
+    max_loops=1,
+    mcp_urls=["http://0.0.0.0:8000/sse", "http://0.0.0.0:8001/sse"],
+)
+
+agent.execute_multiple_mcp_payloads()
+```
+
+Each URL should return a JSON payload with `function_name`, `server_url`, and `payload` fields. The agent parses this response and calls `execute_mcp_call` for every entry.

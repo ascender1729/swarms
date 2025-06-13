@@ -18,8 +18,11 @@ from swarms.utils.try_except_wrapper import try_except_wrapper
 from swarms.utils.calculate_func_metrics import profile_func
 from swarms.utils.litellm_tokenizer import count_tokens
 from swarms.utils.output_types import HistoryOutputType
-from swarms.utils.history_output_formatter import (
-    history_output_formatter,
+from swarms.utils.history_output_formatter import history_output_formatter
+from swarms.utils.mcp_utils import (
+    fetch_mcp_urls,
+    fetch_mcp_payload,
+    parse_mcp_payload,
 )
 
 
@@ -41,4 +44,7 @@ __all__ = [
     "count_tokens",
     "HistoryOutputType",
     "history_output_formatter",
+    "fetch_mcp_urls",
+    "fetch_mcp_payload",
+    "parse_mcp_payload",
 ]
