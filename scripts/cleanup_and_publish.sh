@@ -1,6 +1,9 @@
 
 echo "🧹 Starting code cleanup and publishing process..."
 
+echo "📦 Installing dependencies..."
+pip install -r requirements.txt && echo "✅ Dependencies installed!" || echo "❌ Dependency installation failed!"
+
 echo "⚫ Running Black formatter..."
 black . && echo "✅ Code formatting complete!" || echo "❌ Black formatting failed!"
 
