@@ -79,6 +79,7 @@ torch = "*"
 httpx = "*"
 mcp = "*"
 aiohttp = "*"
+requests = "*"
 
 [tool.poetry.scripts]
 swarms = "swarms.cli.main:main"
