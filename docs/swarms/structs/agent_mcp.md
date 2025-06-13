@@ -62,7 +62,7 @@ The **Model Context Protocol (MCP)** integration enables Swarms agents to dynami
     | Feature | Status | Expected |
     |---------|--------|----------|
     | **MCPConnection Model** | 🚧 Development | Q1 2024 |
-    | **Multiple Server Support** | 🚧 Planned | Q2 2024 |
+    | **Multiple Server Support** | ✅ Ready | Connect to multiple MCPs |
     | **Parallel Function Calling** | 🚧 Research | Q2 2024 |
     | **Auto-discovery** | 🚧 Planned | Q3 2024 |
 
@@ -406,19 +406,22 @@ graph TD
     mcp_url = "http://server:8000/sse"
     ```
 
-    ### 🚧 Single Server Limitation
-    
-    Currently supports one server per agent:
-    
+    ### Multiple Servers
+
+    Connect to several MCP servers with the `mcp_urls` parameter:
+
     ```python
-    # ❌ Multiple servers not supported
-    mcp_servers = [
-        "http://server1:8000/sse",
-        "http://server2:8000/sse"
-    ]
-    
-    # ✅ Single server only
-    mcp_url = "http://primary-server:8000/sse"
+    agent = Agent(
+        agent_name="Multi-MCP-Agent",
+        mcp_urls=[
+            "http://server1:8000/sse",
+            "http://server2:8000/sse",
+        ],
+        max_loops=1,
+    )
+
+    payloads = [...]
+    result = agent.execute_multiple_mcp_payloads(payloads)
     ```
 
     ### 🚧 Sequential Execution
