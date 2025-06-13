@@ -73,6 +73,7 @@ from swarms.structs.ma_utils import set_random_models_for_agents
 from swarms.tools.mcp_client_call import (
     execute_tool_call_simple,
     get_mcp_tools_sync,
+    execute_mcp_call,
 )
 from swarms.schemas.mcp_schemas import (
     MCPConnection,
@@ -81,6 +82,11 @@ from swarms.utils.index import (
     exists,
     format_data_structure,
     format_dict_to_string,
+)
+from swarms.utils import (
+    fetch_mcp_urls,
+    fetch_mcp_payload,
+    parse_mcp_payload,
 )
 from swarms.schemas.conversation_schema import ConversationSchema
 from swarms.utils.output_types import OutputType
@@ -2715,8 +2721,12 @@ class Agent:
     ):
         try:
 
+            if self.mcp_urls:
+                for url in self.mcp_urls:
+                    self._single_mcp_tool_call(url, response, current_loop)
+                return
+
             if exists(self.mcp_url):
-                # Execute the tool call
                 tool_response = asyncio.run(
                     execute_tool_call_simple(
                         response=response,
@@ -2724,7 +2734,6 @@ class Agent:
                     )
                 )
             elif exists(self.mcp_config):
-                # Execute the tool call
                 tool_response = asyncio.run(
                     execute_tool_call_simple(
                         response=response,
@@ -2772,6 +2781,61 @@ class Agent:
         except AgentMCPToolError as e:
             logger.error(f"Error in MCP tool: {e}")
             raise e
+
+    def _single_mcp_tool_call(self, url: str, response: any, loop: int) -> None:
+        """Execute a single MCP tool call and log the result."""
+        try:
+            tool_response = asyncio.run(
+                execute_tool_call_simple(
+                    response=response,
+                    server_path=url,
+                )
+            )
+
+            text_content = (
+                tool_response.content[0].text
+                if hasattr(tool_response, "content") and tool_response.content
+                else str(tool_response)
+            )
+
+            self.short_memory.add(role="Tool Executor", content=text_content)
+
+            try:
+                temp_llm = self.temp_llm_instance_for_tool_summary()
+                summary = temp_llm.run(task=self.short_memory.get_str())
+            except Exception as e:
+                logger.error(f"Error calling LLM after MCP tool execution: {e}")
+                summary = (
+                    "I successfully executed the MCP tool and retrieved the information above."
+                )
+
+            self.pretty_print(summary, loop_count=loop)
+            self.short_memory.add(role=self.agent_name, content=summary)
+        except Exception as e:
+            logger.error(f"Error executing MCP tool from {url}: {e}")
+
+    def execute_multiple_mcp_payloads(self, source: str | None = None) -> None:
+        """Fetch and execute MCP payloads from multiple URLs."""
+        urls = fetch_mcp_urls(source) or self.mcp_urls
+        if not urls:
+            logger.warning("No MCP URLs provided for execution")
+            return
+
+        for url in urls:
+            try:
+                payload_data = fetch_mcp_payload(url)
+                function_name, server_url, payload = parse_mcp_payload(payload_data)
+                result = asyncio.run(
+                    execute_mcp_call(
+                        function_name=function_name,
+                        server_url=server_url,
+                        payload=payload,
+                    )
+                )
+                self.short_memory.add(role="Tool Executor", content=str(result))
+                self.pretty_print(str(result), loop_count=0)
+            except Exception as e:
+                logger.error(f"Failed MCP execution for {url}: {e}")
 
     def temp_llm_instance_for_tool_summary(self):
         return LiteLLM(

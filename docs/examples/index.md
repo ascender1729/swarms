@@ -30,6 +30,7 @@ Additionally, we have more comprehensive examples available in [The Swarms Cookb
 | Command Line | [Command Tool Agent](https://github.com/The-Swarm-Corporation/swarms-examples/blob/main/examples/agents/tools/tool_agent/command_r_tool_agent.py) | Command-line interface tool integration |
 | Jamba | [Jamba Tool Agent](https://github.com/The-Swarm-Corporation/swarms-examples/blob/main/examples/agents/tools/tool_agent/jamba_tool_agent.py) | Integration with Jamba framework for enhanced tool capabilities |
 | Pydantic | [Pydantic Tool Agent](https://github.com/The-Swarm-Corporation/swarms-examples/blob/main/examples/agents/tools/tool_agent/tool_agent_pydantic.py) | Tool validation and schema enforcement using Pydantic |
+| MCP | [Multiple MCP Tool Execution](multiple_mcp_tool_execution.md) | Run tools across several MCP servers |
 
 ### Third-Party Integrations
 | Category | Example | Description |
