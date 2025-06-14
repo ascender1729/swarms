@@ -412,11 +412,13 @@ graph TD
 
     ```python
     mcp_urls = [
-        "http://server1:8000/sse",
-        "http://server2:8000/sse",
+        "http://0.0.0.0:9000",
+        "http://0.0.0.0:9001",
     ]
     agent = Agent(mcp_urls=mcp_urls)
     ```
+
+    See `examples/tools/mcp_examples` for runnable servers that demonstrate this feature.
 
     ### 🚧 Sequential Execution
     

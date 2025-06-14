@@ -637,13 +637,15 @@ The `Agent` class can orchestrate tools across several MCP servers. Provide a li
 ```python
 from swarms import Agent
 
+urls = ["http://0.0.0.0:9000", "http://0.0.0.0:9001"]
+
 agent = Agent(
     agent_name="Multi-MCP-Agent",
     max_loops=1,
-    mcp_urls=["http://0.0.0.0:8000/sse", "http://0.0.0.0:8001/sse"],
+    mcp_urls=urls,
 )
 
 agent.execute_multiple_mcp_payloads()
 ```
 
-Each URL should return a JSON payload with `function_name`, `server_url`, and `payload` fields. The agent parses this response and calls `execute_mcp_call` for every entry.
+Each payload endpoint returns a JSON document with `function_name`, `server_url` and optional `payload` values. See `examples/tools/mcp_examples` for the full servers and client script.
