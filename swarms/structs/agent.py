@@ -74,6 +74,7 @@ from swarms.structs.ma_utils import set_random_models_for_agents
 from swarms.tools.mcp_client_call import (
     execute_tool_call_simple,
     get_mcp_tools_sync,
+    get_or_create_event_loop,
 )
 from swarms.schemas.mcp_schemas import (
     MCPConnection,
@@ -2729,21 +2730,26 @@ class Agent:
         try:
 
             if exists(self.mcp_url):
-                # Execute the tool call
-                tool_response = asyncio.run(
-                    execute_tool_call_simple(
-                        response=response,
-                        server_path=self.mcp_url,
+                # Execute the tool call using a safe event loop. ``get_or_create_event_loop``
+                # spawns a temporary loop if one is already running which avoids
+                # ``RuntimeError: This event loop is already running`` when the
+                # agent is executed inside another async context.
+                with get_or_create_event_loop() as loop:
+                    tool_response = loop.run_until_complete(
+                        execute_tool_call_simple(
+                            response=response,
+                            server_path=self.mcp_url,
+                        )
                     )
-                )
             elif exists(self.mcp_config):
-                # Execute the tool call
-                tool_response = asyncio.run(
-                    execute_tool_call_simple(
-                        response=response,
-                        connection=self.mcp_config,
+                # Execute the tool call using a safe event loop
+                with get_or_create_event_loop() as loop:
+                    tool_response = loop.run_until_complete(
+                        execute_tool_call_simple(
+                            response=response,
+                            connection=self.mcp_config,
+                        )
                     )
-                )
             else:
                 raise AgentMCPConnectionError(
                     "mcp_url must be either a string URL or MCPConnection object"
