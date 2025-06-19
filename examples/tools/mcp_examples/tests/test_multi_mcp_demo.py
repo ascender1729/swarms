@@ -27,25 +27,9 @@ def test_direct_tool_execution():
         max_loops=1
     )
     
-    # Create JSON payloads for multiple tools
-    payloads = [
-        {
-            "function_name": "get_weather", 
-            "server_url": "http://localhost:8000/sse",
-            "payload": {"city": "Paris"}
-        },
-        {
-            "function_name": "get_news", 
-            "server_url": "http://localhost:9001/sse",
-            "payload": {"topic": "science"}
-        }
-    ]
-    
     # Execute the tools and capture output
     print("Executing tools on multiple MCP servers...")
-    output = capture_output(
-        lambda: agent.handle_multiple_mcp_tools(agent.mcp_urls, json.dumps(payloads))
-    )
+    output = capture_output(lambda: agent.run("Call both MCP servers"))
     
     # Extract and display results
     print("\nResults from MCP tools:")

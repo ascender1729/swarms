@@ -502,24 +502,11 @@ agent = Agent(
     agent_name="Multi-MCP-Agent",
     model_name="gpt-4o-mini",
     max_loops=1,
+    mcp_urls=["http://localhost:8000/sse", "http://localhost:9001/sse"],
 )
 
-# Example MCP payloads returned by your model
-mcp_response = json.dumps([
-
-    {
-        "function_name": "get_price",
-        "server_url": "http://localhost:8000/sse",
-        "payload": {"symbol": "BTC"},
-    },
-    {
-        "function_name": "market_sentiment",
-        "server_url": "http://localhost:9001/sse",
-        "payload": {"symbol": "BTC"},
-    },
-])
-
-agent.handle_multiple_mcp_tools(agent.mcp_urls, mcp_response)
+# Simply call run and the agent will reach out to both servers
+agent.run("Call both MCP servers")
 
 ```
 

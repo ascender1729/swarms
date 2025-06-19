@@ -21,14 +21,10 @@ agent = Agent(
     agent_name="Multi-MCP-Agent",
     model_name="gpt-4o-mini",
     max_loops=1,
+    mcp_urls=["http://localhost:8000/sse", "http://localhost:9001/sse"],
 )
 
-# Example JSON payloads produced by your model
-response = json.dumps([
-    {"function_name": "get_weather", "server_url": "http://localhost:8000/sse", "payload": {"city": "London"}},
-    {"function_name": "get_news", "server_url": "http://localhost:9001/sse", "payload": {"topic": "ai"}},
-])
-
-agent.handle_multiple_mcp_tools(agent.mcp_urls, response)
+# The agent will automatically dispatch requests to both MCP servers
+agent.run("Call both MCP servers")
 
 ```
