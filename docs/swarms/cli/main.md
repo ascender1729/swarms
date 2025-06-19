@@ -59,9 +59,11 @@ Below is a detailed explanation of the available commands:
   Starts the onboarding process to help you set up your environment and configure your agents.
   
   Usage:
-  ```bash
-  swarms onboarding
-  ```
+```bash
+swarms onboarding
+```
+
+For a step-by-step demonstration, see the [CLI Onboarding Example](../../README.md#cli-onboarding-example).
 
 - **help**  
   Displays the help message, including a list of available commands.
