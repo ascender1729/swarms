@@ -178,7 +178,26 @@ ANTHROPIC_API_KEY=""
 GROQ_API_KEY=""
 ```
 
-- [Learn more about the environment configuration here](https://docs.swarms.world/en/latest/swarms/install/env/)
+ - [Learn more about the environment configuration here](https://docs.swarms.world/en/latest/swarms/install/env/)
+
+### CLI Onboarding Example
+
+Run the onboarding workflow directly from Python:
+
+```bash
+python -m swarms.cli.main onboarding
+```
+
+You will be prompted for:
+
+```
+Enter your first name (or type 'quit' to exit):
+Enter your Last Name (or type 'quit' to exit):
+Enter your email (or type 'quit' to exit):
+Enter your WORKSPACE_DIR: This is where logs, errors, and agent configurations will be stored (or type 'quit' to exit). Remember to set this as an environment variable: https://docs.swarms.world/en/latest/swarms/install/quickstart/ ||
+```
+
+This information is saved to `user_data.json` and cached for future runs.
 
 ---
 
