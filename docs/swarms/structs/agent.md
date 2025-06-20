@@ -611,6 +611,20 @@ print(type(str_to_dict(out)))
 
 ```
 
+## Connecting to Multiple MCP Servers
+
+```python
+from swarms import Agent
+
+agent = Agent(
+    agent_name="Multi-Server-Agent",
+    mcp_urls=["http://localhost:5001", "http://localhost:5002"],
+    max_loops=1,
+)
+
+agent.run("Call tool_a on Server 1 and tool_b on Server 2")
+```
+
 ## Best Practices
 
 1. Always provide a clear and concise `system_prompt` to guide the agent's behavior.
