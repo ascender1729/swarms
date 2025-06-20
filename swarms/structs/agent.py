@@ -549,6 +549,9 @@ class Agent:
         self.llm_api_key = llm_api_key
         self.rag_config = rag_config
 
+        # Mapping of tool name to originating MCP server
+        self.tool_server_map: Dict[str, str] = {}
+
         # self.short_memory = self.short_memory_init()
 
         # Initialize the feedback
@@ -731,25 +734,42 @@ class Agent:
             return None
 
     def add_mcp_tools_to_memory(self):
-        """
-        Adds MCP tools to the agent's short-term memory.
-
-        This function checks for either a single MCP URL or multiple MCP URLs and adds the available tools
-        to the agent's memory. The tools are listed in JSON format.
-
-        Raises:
-            Exception: If there's an error accessing the MCP tools
-        """
+        """Fetch and store MCP tools from configured server URLs."""
         try:
-            if exists(self.mcp_url):
+            tools: List[Dict[str, Any]] = []
+            self.tool_server_map = {}
+
+            if exists(self.mcp_urls):
+                for url in self.mcp_urls:
+                    server_tools = get_mcp_tools_sync(server_path=url)
+                    tools.extend(server_tools)
+                    for tool in server_tools:
+                        try:
+                            name = tool["function"]["name"]
+                        except Exception:
+                            name = tool.function.name
+                        self.tool_server_map[name] = url
+            elif exists(self.mcp_url):
                 tools = get_mcp_tools_sync(server_path=self.mcp_url)
+                for tool in tools:
+                    try:
+                        name = tool["function"]["name"]
+                    except Exception:
+                        name = tool.function.name
+                    self.tool_server_map[name] = self.mcp_url
             elif exists(self.mcp_config):
                 tools = get_mcp_tools_sync(connection=self.mcp_config)
-                logger.info(f"Tools: {tools}")
+                for tool in tools:
+                    try:
+                        name = tool["function"]["name"]
+                    except Exception:
+                        name = tool.function.name
+                    self.tool_server_map[name] = self.mcp_config.url
             else:
                 raise AgentMCPConnectionError(
                     "mcp_url must be either a string URL or MCPConnection object"
                 )
+
             self.pretty_print(
                 f"✨ [SYSTEM] Successfully integrated {len(tools)} MCP tools into agent: {self.agent_name} | Status: ONLINE | Time: {time.strftime('%H:%M:%S')} ✨",
                 loop_count=0,
@@ -1072,14 +1092,17 @@ class Agent:
                                 loop_count=loop_count,
                             )
 
-                        if exists(self.mcp_url):
+                        if exists(self.mcp_url) or exists(
+                            self.mcp_urls
+                        ):
                             self.mcp_tool_handling(
                                 response, loop_count
                             )
 
-                        if exists(self.mcp_url) and exists(
-                            self.tools
-                        ):
+                        if (
+                            exists(self.mcp_url)
+                            or exists(self.mcp_urls)
+                        ) and exists(self.tools):
                             self.mcp_tool_handling(
                                 response, loop_count
                             )
@@ -2723,31 +2746,78 @@ class Agent:
                 content=response,
             )
 
+    def _extract_tool_calls(
+        self, response: Any
+    ) -> List[Dict[str, Any]]:
+        """Normalize various response formats into a list of tool call dicts."""
+        if isinstance(response, str):
+            try:
+                response = json.loads(response)
+            except Exception:
+                return []
+
+        if isinstance(response, dict):
+            if "function" in response:
+                return [response]
+            if "choices" in response:
+                try:
+                    calls = response["choices"][0]["message"].get(
+                        "tool_calls", []
+                    )
+                    if isinstance(calls, list):
+                        return calls
+                except Exception:
+                    return []
+
+        if isinstance(response, list):
+            return response
+
+        return []
+
     def mcp_tool_handling(
         self, response: any, current_loop: Optional[int] = 0
     ):
         try:
+            tool_calls = self._extract_tool_calls(response)
+            if not tool_calls:
+                return
 
-            if exists(self.mcp_url):
-                # Execute the tool call
-                tool_response = asyncio.run(
-                    execute_tool_call_simple(
-                        response=response,
-                        server_path=self.mcp_url,
+            for call in tool_calls:
+                server_url = None
+                name = None
+                try:
+                    name = call["function"]["name"]
+                except Exception:
+                    pass
+
+                if name and name in self.tool_server_map:
+                    server_url = self.tool_server_map[name]
+
+                if server_url:
+                    tool_response = asyncio.run(
+                        execute_tool_call_simple(
+                            response=call,
+                            server_path=server_url,
+                        )
                     )
-                )
-            elif exists(self.mcp_config):
-                # Execute the tool call
-                tool_response = asyncio.run(
-                    execute_tool_call_simple(
-                        response=response,
-                        connection=self.mcp_config,
+                elif exists(self.mcp_url):
+                    tool_response = asyncio.run(
+                        execute_tool_call_simple(
+                            response=call,
+                            server_path=self.mcp_url,
+                        )
                     )
-                )
-            else:
-                raise AgentMCPConnectionError(
-                    "mcp_url must be either a string URL or MCPConnection object"
-                )
+                elif exists(self.mcp_config):
+                    tool_response = asyncio.run(
+                        execute_tool_call_simple(
+                            response=call,
+                            connection=self.mcp_config,
+                        )
+                    )
+                else:
+                    raise AgentMCPConnectionError(
+                        "mcp_url must be either a string URL or MCPConnection object"
+                    )
 
             # Get the text content from the tool response
             text_content = (

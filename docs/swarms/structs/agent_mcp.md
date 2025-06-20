@@ -62,7 +62,7 @@ The **Model Context Protocol (MCP)** integration enables Swarms agents to dynami
     | Feature | Status | Expected |
     |---------|--------|----------|
     | **MCPConnection Model** | 🚧 Development | Q1 2024 |
-    | **Multiple Server Support** | 🚧 Planned | Q2 2024 |
+    | **Multiple Server Support** | ✅ Ready | - |
     | **Parallel Function Calling** | 🚧 Research | Q2 2024 |
     | **Auto-discovery** | 🚧 Planned | Q3 2024 |
 
@@ -102,6 +102,27 @@ The **Model Context Protocol (MCP)** integration enables Swarms agents to dynami
         "Get current Bitcoin price and analyze market trends"
     )
     print(result)
+    ```
+
+### Step 1b: Multiple MCP Servers
+
+!!! example "Multi-Server Configuration"
+
+    ```python
+    from swarms import Agent
+
+    agent = Agent(
+        agent_name="Multi-MCP-Agent",
+        mcp_urls=[
+            "http://localhost:5001",  # tool_a
+            "http://localhost:5002",  # tool_b
+        ],
+        max_loops=1,
+    )
+
+    agent.run(
+        "Call tool_a on the first server and tool_b on the second server"
+    )
     ```
 
 ### Step 2: Advanced Configuration
