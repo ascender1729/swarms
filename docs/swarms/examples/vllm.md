@@ -47,7 +47,7 @@ Here's a complete example of setting up the stock analysis swarm:
 from swarms import Agent, ConcurrentWorkflow
 from swarms.utils.vllm_wrapper import VLLMWrapper
 
-# Initialize the VLLM wrapper
+# Initialize the VLLM wrapper (model loads lazily on first run)
 vllm = VLLMWrapper(
     model_name="meta-llama/Llama-2-7b-chat-hf",
     system_prompt="You are a helpful assistant.",
@@ -131,7 +131,7 @@ response = swarm.run("Analyze the best etfs for gold and other similar commoditi
 from swarms import Agent, ConcurrentWorkflow
 from swarms.utils.vllm_wrapper import VLLMWrapper
 
-# Initialize the VLLM wrapper
+# Initialize the VLLM wrapper (loaded lazily when used)
 vllm = VLLMWrapper(
     model_name="meta-llama/Llama-2-7b-chat-hf",
     system_prompt="You are a helpful assistant.",

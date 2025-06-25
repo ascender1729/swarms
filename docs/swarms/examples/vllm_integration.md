@@ -28,7 +28,7 @@ Here's a simple example of how to use vLLM with Swarms:
 ```python title="basic_usage.py"
 from swarms.utils.vllm_wrapper import VLLMWrapper
 
-# Initialize the vLLM wrapper
+# Initialize the vLLM wrapper (the model loads when ``run`` is first called)
 vllm = VLLMWrapper(
     model_name="meta-llama/Llama-2-7b-chat-hf",
     system_prompt="You are a helpful assistant.",
@@ -75,7 +75,7 @@ You can easily integrate vLLM with Swarms agents for more complex workflows:
 from swarms import Agent
 from swarms.utils.vllm_wrapper import VLLMWrapper
 
-# Initialize vLLM
+# Initialize vLLM (will load on first ``run``)
 vllm = VLLMWrapper(
     model_name="meta-llama/Llama-2-7b-chat-hf",
     system_prompt="You are a helpful assistant."
@@ -160,7 +160,7 @@ Here's an example of creating a multi-agent system using vLLM:
 from swarms import Agent, ConcurrentWorkflow
 from swarms.utils.vllm_wrapper import VLLMWrapper
 
-# Initialize vLLM
+# Initialize vLLM (loads lazily on first use)
 vllm = VLLMWrapper(
     model_name="meta-llama/Llama-2-7b-chat-hf",
     system_prompt="You are a helpful assistant."
